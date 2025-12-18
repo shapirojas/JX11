@@ -50,12 +50,12 @@ void PimpleJuiceAudioProcessorEditor::paint(juce::Graphics &g) {
 
   g.setFont(juce::Font(28.0f, juce::Font::bold));
   g.setColour(juce::Colour(0xffe94560));
-  g.drawText("PimpleJuice", getLocalBounds().removeFromTop(60),
+  g.drawText("JX11", getLocalBounds().removeFromTop(60),
              juce::Justification::centred, true);
 
   g.setFont(juce::Font(12.0f));
   g.setColour(juce::Colour(0xff0f3460));
-  g.drawText("A Better Sampler", getLocalBounds().removeFromTop(80),
+  g.drawText("Based on the classic JX10 Synth", getLocalBounds().removeFromTop(80),
              juce::Justification::centred, true);
 }
 
