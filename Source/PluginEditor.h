@@ -6,10 +6,10 @@
 //==============================================================================
 /**
  */
-class PimpleJuiceAudioProcessorEditor : public juce::AudioProcessorEditor {
+class JX11AudioProcessorEditor : public juce::AudioProcessorEditor {
 public:
-  PimpleJuiceAudioProcessorEditor(PimpleJuiceAudioProcessor &);
-  ~PimpleJuiceAudioProcessorEditor() override;
+  JX11AudioProcessorEditor(JX11AudioProcessor &);
+  ~JX11AudioProcessorEditor() override;
 
   //==============================================================================
   void paint(juce::Graphics &) override;
@@ -18,7 +18,7 @@ public:
 private:
   // This reference is provided as a quick way for your editor to
   // access the processor object that created it.
-  PimpleJuiceAudioProcessor &audioProcessor;
+  JX11AudioProcessor &audioProcessor;
 
   juce::Slider gainSlider;
   juce::Slider mixSlider;
@@ -30,5 +30,5 @@ private:
   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>
       mixAttachment;
 
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PimpleJuiceAudioProcessorEditor)
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(JX11AudioProcessorEditor)
 };

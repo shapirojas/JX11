@@ -2,8 +2,8 @@
 #include "PluginProcessor.h"
 
 //==============================================================================
-PimpleJuiceAudioProcessorEditor::PimpleJuiceAudioProcessorEditor(
-    PimpleJuiceAudioProcessor &p)
+JX11AudioProcessorEditor::JX11AudioProcessorEditor(
+    JX11AudioProcessor &p)
     : AudioProcessorEditor(&p), audioProcessor(p) {
   // Make sure that before the constructor has finished, you've set the
   // editor's size to whatever you need it to be.
@@ -37,10 +37,10 @@ PimpleJuiceAudioProcessorEditor::PimpleJuiceAudioProcessorEditor(
           audioProcessor.getAPVTS(), "mix", mixSlider);
 }
 
-PimpleJuiceAudioProcessorEditor::~PimpleJuiceAudioProcessorEditor() {}
+JX11AudioProcessorEditor::~JX11AudioProcessorEditor() {}
 
 //==============================================================================
-void PimpleJuiceAudioProcessorEditor::paint(juce::Graphics &g) {
+void JX11AudioProcessorEditor::paint(juce::Graphics &g) {
   // (Our component is opaque, so we must completely fill the background with a
   // solid colour)
   g.fillAll(juce::Colour(0xff1a1a2e));
@@ -59,7 +59,7 @@ void PimpleJuiceAudioProcessorEditor::paint(juce::Graphics &g) {
              juce::Justification::centred, true);
 }
 
-void PimpleJuiceAudioProcessorEditor::resized() {
+void JX11AudioProcessorEditor::resized() {
   // This is generally where you'll want to lay out the positions of any
   // subcomponents in your editor..
   auto bounds = getLocalBounds().reduced(20);

@@ -31,6 +31,8 @@ juce_generate_juce_header(JX11)
 target_sources(JX11 PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
+    Source/NoiseGenerator.cpp
+    Source/Synth.cpp
 )
 
 target_include_directories(JX11 PRIVATE Source)

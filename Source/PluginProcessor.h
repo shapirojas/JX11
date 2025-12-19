@@ -1,16 +1,18 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Synth.h"
 
-class PimpleJuiceAudioProcessor : public juce::AudioProcessor {
+class JX11AudioProcessor : public juce::AudioProcessor {
 public:
   //==============================================================================
-  PimpleJuiceAudioProcessor();
-  ~PimpleJuiceAudioProcessor() override;
+  JX11AudioProcessor();
+  ~JX11AudioProcessor() override;
 
   //==============================================================================
   void prepareToPlay(double sampleRate, int samplesPerBlock) override;
   void releaseResources() override;
+  void reset() override;
 
 #ifndef JucePlugin_PreferredChannelConfigurations
   bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
@@ -45,8 +47,13 @@ public:
 
 private:
   //==============================================================================
+  Synth synth;
+
   juce::AudioProcessorValueTreeState apvts;
   juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+  void splitBufferByEvents(juce::AudioBuffer<float> &buffer, juce::MidiBuffer& midiMessages);
+  void handleMIDI(uint8_t data0, uint8_t data1, uint8_t data2);
+  void render(juce::AudioBuffer<float> &buffer, int sampleCount, int bufferOffset);
 
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PimpleJuiceAudioProcessor)
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(JX11AudioProcessor)
 };

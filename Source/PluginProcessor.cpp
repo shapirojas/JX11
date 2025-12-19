@@ -1,8 +1,9 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+// #include "juce_audio_basics/buffers/juce_FloatVectorOperations.h"
 
 //==============================================================================
-PimpleJuiceAudioProcessor::PimpleJuiceAudioProcessor()
+JX11AudioProcessor::JX11AudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
     : AudioProcessor(
           BusesProperties()
@@ -17,10 +18,10 @@ PimpleJuiceAudioProcessor::PimpleJuiceAudioProcessor()
       apvts(*this, nullptr, "Parameters", createParameterLayout()) {
 }
 
-PimpleJuiceAudioProcessor::~PimpleJuiceAudioProcessor() {}
+JX11AudioProcessor::~JX11AudioProcessor() {}
 
 juce::AudioProcessorValueTreeState::ParameterLayout
-PimpleJuiceAudioProcessor::createParameterLayout() {
+JX11AudioProcessor::createParameterLayout() {
   std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
   params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -35,11 +36,11 @@ PimpleJuiceAudioProcessor::createParameterLayout() {
 }
 
 //==============================================================================
-const juce::String PimpleJuiceAudioProcessor::getName() const {
+const juce::String JX11AudioProcessor::getName() const {
   return JucePlugin_Name;
 }
 
-bool PimpleJuiceAudioProcessor::acceptsMidi() const {
+bool JX11AudioProcessor::acceptsMidi() const {
 #if JucePlugin_WantsMidiInput
   return true;
 #else
@@ -47,7 +48,7 @@ bool PimpleJuiceAudioProcessor::acceptsMidi() const {
 #endif
 }
 
-bool PimpleJuiceAudioProcessor::producesMidi() const {
+bool JX11AudioProcessor::producesMidi() const {
 #if JucePlugin_ProducesMidiOutput
   return true;
 #else
@@ -55,7 +56,7 @@ bool PimpleJuiceAudioProcessor::producesMidi() const {
 #endif
 }
 
-bool PimpleJuiceAudioProcessor::isMidiEffect() const {
+bool JX11AudioProcessor::isMidiEffect() const {
 #if JucePlugin_IsMidiEffect
   return true;
 #else
@@ -63,45 +64,51 @@ bool PimpleJuiceAudioProcessor::isMidiEffect() const {
 #endif
 }
 
-double PimpleJuiceAudioProcessor::getTailLengthSeconds() const { return 0.0; }
+double JX11AudioProcessor::getTailLengthSeconds() const { return 0.0; }
 
-int PimpleJuiceAudioProcessor::getNumPrograms() {
+int JX11AudioProcessor::getNumPrograms() {
   return 1; // NB: some hosts don't cope very well if you tell them there are 0
             // programs, so this should be at least 1, even if you're not really
             // implementing programs.
 }
 
-int PimpleJuiceAudioProcessor::getCurrentProgram() { return 0; }
+int JX11AudioProcessor::getCurrentProgram() { return 0; }
 
-void PimpleJuiceAudioProcessor::setCurrentProgram(int index) {
+void JX11AudioProcessor::setCurrentProgram(int index) {
   juce::ignoreUnused(index);
 }
 
-const juce::String PimpleJuiceAudioProcessor::getProgramName(int index) {
+const juce::String JX11AudioProcessor::getProgramName(int index) {
   juce::ignoreUnused(index);
   return {};
 }
 
-void PimpleJuiceAudioProcessor::changeProgramName(int index,
+void JX11AudioProcessor::changeProgramName(int index,
                                                   const juce::String &newName) {
   juce::ignoreUnused(index, newName);
 }
 
 //==============================================================================
-void PimpleJuiceAudioProcessor::prepareToPlay(double sampleRate,
+void JX11AudioProcessor::prepareToPlay(double sampleRate,
                                               int samplesPerBlock) {
   // Use this method as the place to do any pre-playback
   // initialisation that you need..
-  juce::ignoreUnused(sampleRate, samplesPerBlock);
+  synth.allocateResources(sampleRate, samplesPerBlock);
+  reset();
 }
 
-void PimpleJuiceAudioProcessor::releaseResources() {
+void JX11AudioProcessor::releaseResources() {
   // When playback stops, you can use this as an opportunity to free up any
   // spare memory, etc.
+  synth.deallocateResources();
+}
+
+void JX11AudioProcessor::reset() {
+  synth.reset();
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool PimpleJuiceAudioProcessor::isBusesLayoutSupported(
+bool JX11AudioProcessor::isBusesLayoutSupported(
     const BusesLayout &layouts) const {
 #if JucePlugin_IsMidiEffect
   juce::ignoreUnused(layouts);
@@ -111,8 +118,7 @@ bool PimpleJuiceAudioProcessor::isBusesLayoutSupported(
   // In this template code we only support mono or stereo.
   // Some plugin hosts, such as certain GarageBand versions, will only
   // load plugins that support stereo bus layouts.
-  if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono() &&
-      layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo()) {
+  if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo()) {
     return false;
   }
 
@@ -128,59 +134,77 @@ bool PimpleJuiceAudioProcessor::isBusesLayoutSupported(
 }
 #endif
 
-void PimpleJuiceAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
+void JX11AudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                              juce::MidiBuffer &midiMessages) {
-  juce::ignoreUnused(midiMessages);
   juce::ScopedNoDenormals noDenormals;
 
   auto totalNumInputChannels = getTotalNumInputChannels();
   auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-#if !JucePlugin_IsSynth
-  // In case we have more outputs than inputs, this code clears any output
-  // channels that didn't contain input data, (because these aren't
-  // guaranteed to be empty - they may contain garbage).
-  // This is here to avoid people getting screaming feedback
-  // when they first compile a plugin, but obviously you don't need to keep
-  // this code if your algorithm always overwrites all the output channels.
+  // Clear any output channels that don't contain input data
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
     buffer.clear(i, 0, buffer.getNumSamples());
   }
-#endif
 
-  float gain = apvts.getRawParameterValue("gain")->load();
-  // float mix = apvts.getRawParameterValue ("mix")->load(); // Mix is less
-  // relevant for a pure synth, but keeping for now if we add FX later
-
-  for (int channel = 0; channel < totalNumOutputChannels; ++channel) {
-    auto *channelData = buffer.getWritePointer(channel);
-
-    // For a synth, we would render voices here.
-    // For now, let's just silence the output so it doesn't blast garbage.
-    // Once we add a synth engine, we will render audio here.
-    if (totalNumInputChannels == 0) {
-      buffer.clear(channel, 0, buffer.getNumSamples());
-    } else {
-      // If we somehow have inputs (e.g. effect synth), pass them through
-      // modified But usually synths ignore input.
-      for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
-        channelData[sample] *= gain;
-      }
-    }
-  }
+  // Renders audio and handles MIDI events
+  splitBufferByEvents(buffer, midiMessages);
 }
 
+void JX11AudioProcessor::splitBufferByEvents(juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midiMessages) {
+  int bufferOffset = 0;
+
+  for  (const auto metadata : midiMessages) {
+    // Render the audio that happens before this event (if any).
+    int samplesThisSegment = metadata.samplePosition - bufferOffset;
+    if (samplesThisSegment > 0) {
+      render(buffer, samplesThisSegment, bufferOffset);
+      bufferOffset += samplesThisSegment;
+    }
+
+    // Handle the event,  Ignore MIDI messages such as sysex.
+    if (metadata.numBytes <= 3) {
+      uint8_t data1 = (metadata.numBytes >= 2) ? metadata.data[1] : 0;
+      uint8_t data2 = (metadata.numBytes == 3) ? metadata.data[2] : 0;
+      handleMIDI(metadata.data[0], data1, data2);
+    }
+  }
+
+  // Render the audio after the last MIDI event.  If there were no
+  // MIDI events at all, this renders the entire buffer.
+  int samplesLastSegment = buffer.getNumSamples() - bufferOffset;
+  if (samplesLastSegment > 0) {
+    render(buffer, samplesLastSegment, bufferOffset);
+  }
+
+  midiMessages.clear();
+}
+
+void JX11AudioProcessor::handleMIDI(uint8_t data0, uint8_t data1, uint8_t data2) {
+  synth.midiMessages(data0, data1, data2);
+}
+
+void JX11AudioProcessor::render(juce::AudioBuffer<float> &buffer, int sampleCount, int bufferOffset) {
+  float* outputBuffers[2] = { nullptr, nullptr};
+  outputBuffers[0] = buffer.getWritePointer(0) + bufferOffset;
+  if (getTotalNumOutputChannels() > 1) {
+    outputBuffers[1] = buffer.getWritePointer(1) + bufferOffset;
+  }
+
+  synth.render(outputBuffers, sampleCount);
+}
+
+
 //==============================================================================
-bool PimpleJuiceAudioProcessor::hasEditor() const {
+bool JX11AudioProcessor::hasEditor() const {
   return true; // (change this to false if you choose to not supply an editor)
 }
 
-juce::AudioProcessorEditor *PimpleJuiceAudioProcessor::createEditor() {
-  return new PimpleJuiceAudioProcessorEditor(*this);
+juce::AudioProcessorEditor *JX11AudioProcessor::createEditor() {
+  return new JX11AudioProcessorEditor(*this);
 }
 
 //==============================================================================
-void PimpleJuiceAudioProcessor::getStateInformation(
+void JX11AudioProcessor::getStateInformation(
     juce::MemoryBlock &destData) {
   // You should use this method to store your parameters in the memory block.
   // You could do that either as raw data, or use the XML or ValueTree classes
@@ -190,7 +214,7 @@ void PimpleJuiceAudioProcessor::getStateInformation(
   copyXmlToBinary(*xml, destData);
 }
 
-void PimpleJuiceAudioProcessor::setStateInformation(const void *data,
+void JX11AudioProcessor::setStateInformation(const void *data,
                                                     int sizeInBytes) {
   // You should use this method to restore your parameters from this memory
   // block, whose contents will have been created by the getStateInformation()
@@ -207,5 +231,5 @@ void PimpleJuiceAudioProcessor::setStateInformation(const void *data,
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
-  return new PimpleJuiceAudioProcessor();
+  return new JX11AudioProcessor();
 }
