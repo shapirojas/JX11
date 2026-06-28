@@ -1,4 +1,4 @@
-# PimpleJuice 🍊
+# PampleJuice 🍊
 
 The bubble's gotta burst.
 A better alternative to PampleJuice.
